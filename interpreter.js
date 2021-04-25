@@ -84,6 +84,8 @@ const interpreter = (ast) => {
         // logScope()
         // 处理变量
         if (typeStrAst(ast) === 'TokenType.variable') {
+            log('作用域:', scopes.all)
+            log('获取key:', ast.value)
             r = scopes.scopeByName(ast.value)[ast.value]
             if (r === undefined) {
                 return undefined

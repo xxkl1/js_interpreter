@@ -5,11 +5,15 @@ import interpreter from './interpreter.js'
 
 const __main = () => {
     const input = `
-    var f = function (a) {
-        a = a + 1
+    var a = 1
+    var f = function() {
         return a
     }
-    f(1)
+    var x = function() {
+        var a = 2
+        return f()
+    }
+    x()
     `
     const t = tokenizer(input)
     log('tokenizer:', t)

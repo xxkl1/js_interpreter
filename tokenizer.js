@@ -163,8 +163,9 @@ const tokenizer = (glCode) => {
                 i += offset - 1
             }
         } else if (cur === '\n') {
-            const endNot = '{'
-            if (!endNot.includes(pre)) {
+            const endNot = '{;'
+            const last = output[output.length - 1]
+            if (last && !endNot.includes(last.tokenValue)) {
                 const o = {
                     tokenValue: ';',
                     tokenType: TokenType.semicolon,
