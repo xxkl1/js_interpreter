@@ -3,8 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <title>gl</title>
+    <style>
+        #main {
+            margin: 10px;
+            display: flex;
+            justify-content: flex-start;
+        }
+        #code-input {
+            flex: auto;
+        }
+        #main-right {
+            margin-left: 10px;
+            flex: auto;
+            height: 100px;
+        }
+        #result {
+            box-sizing: border-box;
+            padding: 5px;
+            width: 100%;
+            height: 100px;
+            border: 1px solid #000;
+        }
+        #run {
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
+    <div id="main">
+        <textarea rows="100" id="code-input"></textarea>
+        <div id="main-right">
+            <div id="result"></div>
+            <button id="run">运行</button>
+        </div>
+    </div>
 </body>
 <script type="module" src="main.js"></script>
 </html>
