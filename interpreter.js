@@ -3,6 +3,10 @@ import {
     log,
 } from './utils.js'
 
+import {
+    TokenType,
+} from './type.js'
+
 class Scopes {
     constructor() {
         this.setup()
@@ -73,7 +77,7 @@ const interpreter = (ast) => {
         // 如果是这两个类型直接return value属性
         const typeReturn = ['TokenType.number', 'TokenType.string', 'TokenType.boolean']
         if (typeReturn.includes(typeStrAst(ast))) {
-            return ast.value
+            return ast
         }
 
         let r = ast
@@ -95,6 +99,30 @@ const interpreter = (ast) => {
         if (typesInterpret.includes(typeStrAst(r))) {
             r = interpretExpression(r)
         }
+
+        if (!isObject(r)) {
+            log('处理不是object的 valueOf返回:', r)
+            if (typeof r === 'number') {
+                log('返回numer')
+                r = {
+                    type: TokenType.number,
+                    value: r,
+                }
+            } else if (typeof r === "string") {
+                log('返回string')
+                r = {
+                    type: TokenType.string,
+                    value: r,
+                }
+            } else if (typeof r === "boolean") {
+                log('返回boolean')
+                r = {
+                    type: TokenType.boolean,
+                    value: r,
+                }
+            }
+        }
+        log('valueOf 返回:', r)
         return r
     }
 
@@ -110,13 +138,17 @@ const interpreter = (ast) => {
             if (arg) {
                 value = valueOf(arg)
             }
+            log('设置参数作用域')
+            log('key:', name)
+            log('value:', value)
             scope[name] = value
         }
         return scope
     }
 
     function handleFor(expression) {
-        if (valueOf(expression.condition)) {
+        const v = valueOf(expression.condition)
+        if (v && v.value) {
             const r = interpretExpressionList(expression.body.body)
             if (r) {
                 return r
@@ -165,19 +197,25 @@ const interpreter = (ast) => {
             }
         } else if (typeStrAst(expression) === 'AstType.StatementReturn') {
             log('StatementReturn:', expression.value)
-            return valueOf(expression.value)
+            const v = valueOf(expression.value)
+            const typeReturn = ['TokenType.number', 'TokenType.string', 'TokenType.boolean']
+            if (v && typeReturn.includes(typeStrAst(v))) {
+                return v.value
+            } else {
+                return v
+            }
         } else if (typeStrAst(expression) === 'AstType.ExpressionBinary') {
             const func = funcBinary[typeStrAst(expression.operator)]
             if (func) {
                 log('AstType.ExpressionBinary:', typeStrAst(expression.operator))
                 log('expression.left:', expression.left)
-                const left = valueOf(expression.left)
-                log('AstType.ExpressionBinary.left:', left)
-                const right = valueOf(expression.right)
+                const left = valueOf(expression.left).value
+                log('expression.right:', expression.right)
+                const right = valueOf(expression.right).value
                 return func(left, right)
             }
         } else if (typeStrAst(expression) === 'AstType.StatementIf') {
-            const condition = valueOf(expression.condition)
+            const condition = valueOf(expression.condition).value
             log('StatementIf.condition:', expression.condition)
             if (condition) {
                 scopes.add({})
@@ -197,9 +235,9 @@ const interpreter = (ast) => {
                 }
             }
         } else if (typeStrAst(expression) === 'AstType.StatementWhile') {
-            const condition = valueOf(expression.condition)
+            const v = valueOf(expression.condition)
+            const condition = v.value
             if (condition) {
-                log('while,coditon:', condition)
                 scopes.add({})
                 log('body:', expression.body.body)
                 const r = interpretExpressionList(expression.body.body)
@@ -208,7 +246,7 @@ const interpreter = (ast) => {
                 if (r) {
                     return r
                 }
-                const conditionNext = valueOf(expression.condition)
+                const conditionNext = valueOf(expression.condition).value
                 if (conditionNext) {
                     const r = interpretExpression(expression)
                     if (r) {
@@ -225,9 +263,10 @@ const interpreter = (ast) => {
             }
         } else if (typeStrAst(expression) === 'AstType.ExpressionAssignment') {
             const assignName = expression.left.value
-            log('all:', scopes.scopes)
             const scope = scopes.scopeByName(assignName)
-            scope[assignName].value = valueOf(expression.right)
+            // 注意测试这里
+            // scope[assignName].value = valueOf(expression.right)
+            scope[assignName] = valueOf(expression.right)
             log('scope after:', scope)
         }
     }

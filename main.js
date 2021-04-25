@@ -5,7 +5,8 @@ import interpreter from './interpreter.js'
 
 const __main = () => {
     const input = `
-    var f = function(a) {
+    var f = function (a) {
+        a = a + 1
         return a
     }
     f(1)
