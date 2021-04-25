@@ -5,11 +5,11 @@ import interpreter from './interpreter.js'
 
 const __main = () => {
     const input = `
-    var a = 1
-    var f = function() {
+    const a = 1
+    const f = function() {
         return a
     }
-    var x = function() {
+    const x = function() {
         var a = 2
         return f()
     }

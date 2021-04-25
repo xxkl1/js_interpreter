@@ -79,7 +79,7 @@ const parserExpression = function(tokens, start = 0) {
         // 关键字处理
         if (equals(cur.tokenType, TokenType.keyword)) {
             // 变量声明
-            if (cur.tokenValue === 'var') {
+            if (cur.tokenValue === 'var' || cur.tokenValue === 'const') {
                 const index = tks.findIndex((e, i2) => i2 > i && equals(e.tokenType, TokenType.assign))
                 const [name] = parserExpression(tks.slice(i + 1, index))
                 i += index - 1
