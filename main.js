@@ -4,8 +4,8 @@ import parser from "./parser.js"
 import interpreter from './interpreter.js'
 
 const __main = () => {
-    const input = `var f = function() {
-        return 1 + 1
+    const input = `var f = function(a) {
+        return a
     }
     f()
     `

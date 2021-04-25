@@ -180,7 +180,6 @@ const parserExpression = function(tokens, start = 0) {
 
             // return
             if (cur.tokenValue === 'return') {
-                log('进入 return处理')
                 const [v, offset] = parserExpression(tks.slice(i + 1))
                 i += offset
                 return [Return(v), indexToLen(i)]
@@ -496,7 +495,6 @@ const parser = function(tokens) {
         return r
     }
     const l = handleBinary(tokens)
-    log('转前缀后的tokenList:', l)
     const [r] = parserExpressionList(l)
     return r
 }

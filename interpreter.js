@@ -63,6 +63,8 @@ const interpreter = (ast) => {
 
     // 处理所有取值
     const valueOf = (ast) => {
+        log('进入valueOf')
+        log('ast:', ast)
         // 如果是这两个类型直接return value属性
         const typeReturn = ['TokenType.number', 'TokenType.string', 'TokenType.boolean']
         if (typeReturn.includes(typeStrAst(ast))) {
@@ -74,6 +76,9 @@ const interpreter = (ast) => {
         // 处理变量
         if (typeStrAst(ast) === 'TokenType.variable') {
             r = _bodyFromScope(ast.value)
+            if (r === undefined) {
+                return undefined
+            }
             const recursionType = ['TokenType.variable', ...typeReturn]
             if (recursionType.includes(typeStrAst(r))) {
                 r = valueOf(r)
@@ -248,11 +253,12 @@ const interpreter = (ast) => {
 
     const r = interpretExpressionList(ast)
 
-    if (!r) {
-        const [fist] = scope
-        log('fist.i:', fist['a'].value)
-        log(scope)
-    }
+    // 需要进行while_1 parser测试就开启
+    // if (!r) {
+    //     const [fist] = scope
+    //     log('fist.i:', fist['a'].value)
+    //     log(scope)
+    // }
 
     return r
 }
