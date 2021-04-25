@@ -5,6 +5,7 @@ import {
 import {
     isObject,
     equals,
+    log,
 } from './utils.js'
 import {
     Num,
@@ -40,7 +41,7 @@ const equalsSome = function(a, l) {
 }
 
 // 寻找边界，并返回其在tks的下标
-const indexBorder = function(tks, start, direction = 'right', borders= '= \n;[]()') {
+const indexBorder = function(tks, start, direction = 'right', borders= ['=', ' ', '\n', ';', '[', ']', '(', ')', 'return']) {
     let i = start
     while (true) {
         const cur = tks[i]
@@ -179,6 +180,7 @@ const parserExpression = function(tokens, start = 0) {
 
             // return
             if (cur.tokenValue === 'return') {
+                log('进入 return处理')
                 const [v, offset] = parserExpression(tks.slice(i + 1))
                 i += offset
                 return [Return(v), indexToLen(i)]
@@ -493,7 +495,9 @@ const parser = function(tokens) {
         }
         return r
     }
-    const [r] = parserExpressionList(handleBinary(tokens))
+    const l = handleBinary(tokens)
+    log('转前缀后的tokenList:', l)
+    const [r] = parserExpressionList(l)
     return r
 }
 
