@@ -69,6 +69,7 @@ const keyWordElement = (s) => {
         'el': ['else', 'else'],
         'wh': ['while', 'while'],
         'fo': ['for', 'for'],
+        're': ['return', 'return'],
     }
     const head = s.slice(0, 2)
     if (keywords.hasOwnProperty(head)) {

@@ -26,6 +26,7 @@ import {
     Arr,
     Obj,
     objectProperty,
+    Return,
 } from './helper.js'
 
 const equalsSome = function(a, l) {
@@ -174,6 +175,13 @@ const parserExpression = function(tokens, start = 0) {
                 const [body, offset4] = parserExpression(tks.slice(i + 1))
                 i += offset4
                 return [For(init, condition, update, body), indexToLen(i)]
+            }
+
+            // return
+            if (cur.tokenValue === 'return') {
+                const [v, offset] = parserExpression(tks.slice(i + 1))
+                i += offset
+                return [Return(v), indexToLen(i)]
             }
         }
 
