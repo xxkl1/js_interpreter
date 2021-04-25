@@ -3,8 +3,57 @@ import {
     log,
 } from './utils.js'
 
+class Scopes {
+    constructor() {
+        this.setup()
+    }
+    setup() {
+        this._scopes = [{}]
+    }
+    add(scope = {}) {
+        this._scopes.push(scope)
+    }
+    remove() {
+        this._scopes.pop()
+    }
+    get all() {
+        return this._scopes
+    }
+    get head() {
+        return this._scopes[0]
+    }
+    get end() {
+        return this._scopes[this._scopes.length - 1]
+    }
+    // 从_scopes尾部开始寻找，找到包含name的scope
+    scopeByName(name) {
+        for (let i = this._scopes.length - 1; i >= 0; i--) {
+            const v = this._scopes[i]
+            if (v.hasOwnProperty(name)) {
+                return v
+            }
+        }
+        return undefined
+    }
+    // 两层深拷贝
+    static copyScope(scope) {
+        const newScope = {}
+        const keys = Object.keys(scope)
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i]
+            const v = scope[key]
+            if(isObject(v)) {
+                newScope[key] = Object.assign({}, v)
+            } else {
+                newScope[key] = v
+            }
+        }
+        return newScope
+    }
+}
+
 const interpreter = (ast) => {
-    const scope = [{}]
+    const scopes = new Scopes()
 
     const funcBinary = {
         'TokenType.plus': (a, b) => a + b,
@@ -15,56 +64,12 @@ const interpreter = (ast) => {
         'TokenType.divide': (a, b) => a / b
     }
 
-    const newScope = (s = {}) => {
-        scope.push(s)
-        return s
-    }
-
-    const logScope = () => {
-        log('scope:', scope)
-    }
-
-    const deleteScope = () => {
-        scope.pop()
-    }
-
-    const lastScope = (i = 1) => {
-        return scope[scope.length - i]
-    }
-
-    const setLastScopeProto = (name, body) => {
-        const lastScope = scope[scope.length - 1]
-        lastScope[name] = body
-    }
-
     const typeStrAst = (e) => {
         return String(e.type)
     }
 
-    const getScopeByName = (name) => {
-        for (let i = scope.length - 1; i >= 0; i--) {
-            const v = scope[i]
-            if (v.hasOwnProperty(name)) {
-                return v
-            }
-        }
-        return undefined
-    }
-
-    const _bodyFromScope = (name) => {
-        for (let i = scope.length - 1; i >= 0; i--) {
-            const v = scope[i]
-            if (v.hasOwnProperty(name)) {
-                return v[name]
-            }
-        }
-        return undefined
-    }
-
     // 处理所有取值
     const valueOf = (ast) => {
-        log('进入valueOf')
-        log('ast:', ast)
         // 如果是这两个类型直接return value属性
         const typeReturn = ['TokenType.number', 'TokenType.string', 'TokenType.boolean']
         if (typeReturn.includes(typeStrAst(ast))) {
@@ -75,7 +80,7 @@ const interpreter = (ast) => {
         // logScope()
         // 处理变量
         if (typeStrAst(ast) === 'TokenType.variable') {
-            r = _bodyFromScope(ast.value)
+            r = scopes.scopeByName(ast.value)[ast.value]
             if (r === undefined) {
                 return undefined
             }
@@ -121,86 +126,72 @@ const interpreter = (ast) => {
         }
     }
 
-    function copyScope(scope) {
-        const newScope = {}
-        const keys = Object.keys(scope)
-        for (let i = 0; i < keys.length; i++) {
-            const key = keys[i]
-            const v = scope[key]
-            if(isObject(v)) {
-                newScope[key] = Object.assign({}, v)
-            } else {
-                newScope[key] = v
-            }
-        }
-        return newScope
-    }
-
     function interpretExpression(expression) {
+        log('expression:', expression)
         if (typeStrAst(expression) === 'AstType.DeclarationVariable') {
             const name = expression.variable.value
             let body = expression.value
-            // log('name:', name)
-            // log('devariable:', body)
+            log('name:', name)
+            log('devariable:', body)
             if (typeStrAst(body) === 'AstType.ExpressionFunction') {
                 log('deExpressionFunction:', body)
                 body = Object.assign({}, body)
-                body.scopes = scope.map(e => copyScope(e))
+                body.scopes = scopes.all.map(e => Scopes.copyScope(e))
             } else if (typeStrAst(body) === 'AstType.ExpressionCall') {
                 body = interpretExpression(body)
             }
-            setLastScopeProto(name, body)
+            scopes.end[name] = body
+            // setLastScopeProto(name, body)
         } else if (typeStrAst(expression) === 'AstType.ExpressionCall') {
             // 获取函数调用的函数体
-            // log('callee:', expression.callee)
+            log('callee:', expression.callee)
             const expressionCall = valueOf(expression.callee)
-            // log('expressionCall', expressionCall)
+            log('expressionCall', expressionCall)
             if (expressionCall) {
                 for (let i = 0; i < expressionCall.scopes.length; i++) {
                     const cur = expressionCall.scopes[i]
-                    newScope(cur)
+                    scopes.add(cur)
                 }
                 const params = expressionCall.params
                 const argus = expression.arguments
-                newScope(scopeFromParams(params, argus))
+                scopes.add(scopeFromParams(params, argus))
                 const body = expressionCall.body.body
-                log('body:', body)
                 const r = interpretExpressionList(body)
-                deleteScope()
+                scopes.remove()
                 for (let i = 0; i < expressionCall.scopes.length; i++) {
-                    deleteScope()
+                    scopes.remove()
                 }
                 return r
             }
         } else if (typeStrAst(expression) === 'AstType.StatementReturn') {
-            // log('StatementReturn:', expression.value)
+            log('StatementReturn:', expression.value)
             return valueOf(expression.value)
         } else if (typeStrAst(expression) === 'AstType.ExpressionBinary') {
             const func = funcBinary[typeStrAst(expression.operator)]
             if (func) {
-                // log('AstType.ExpressionBinary:', typeStrAst(expression.operator))
-                // log('expression.left:', expression.left)
+                log('AstType.ExpressionBinary:', typeStrAst(expression.operator))
+                log('expression.left:', expression.left)
                 const left = valueOf(expression.left)
-                // log('AstType.ExpressionBinary.left:', left)
+                log('AstType.ExpressionBinary.left:', left)
                 const right = valueOf(expression.right)
                 return func(left, right)
             }
         } else if (typeStrAst(expression) === 'AstType.StatementIf') {
             const condition = valueOf(expression.condition)
-            // log('StatementIf.condition:', expression.condition)
+            log('StatementIf.condition:', expression.condition)
             if (condition) {
-                newScope({})
+                scopes.add({})
                 const r = interpretExpressionList(expression.consequent.body)
-                deleteScope()
+                scopes.remove()
                 if (r) {
                     return r
                 }
             } else if (expression.alternate) {
                 // 有定义了alternate才进行执行
-                newScope({})
-                // log('expression.alternate.body:', expression.alternate.body)
+                scopes.add({})
+                log('expression.alternate.body:', expression.alternate.body)
                 const r = interpretExpressionList(expression.alternate.body)
-                deleteScope()
+                scopes.remove()
                 if (r) {
                     return r
                 }
@@ -208,12 +199,12 @@ const interpreter = (ast) => {
         } else if (typeStrAst(expression) === 'AstType.StatementWhile') {
             const condition = valueOf(expression.condition)
             if (condition) {
-                // log('while,coditon:', condition)
-                newScope({})
-                // log('body:', expression.body.body)
+                log('while,coditon:', condition)
+                scopes.add({})
+                log('body:', expression.body.body)
                 const r = interpretExpressionList(expression.body.body)
                 // logScope()
-                deleteScope()
+                scopes.remove()
                 if (r) {
                     return r
                 }
@@ -226,7 +217,7 @@ const interpreter = (ast) => {
                 }
             }
         } else if (typeStrAst(expression) === 'AstType.StatementFor') {
-            newScope()
+            scopes.add()
             interpretExpression(expression.init)
             const r  = handleFor(expression)
             if (r) {
@@ -234,9 +225,10 @@ const interpreter = (ast) => {
             }
         } else if (typeStrAst(expression) === 'AstType.ExpressionAssignment') {
             const assignName = expression.left.value
-            const scope = getScopeByName(assignName)
+            log('all:', scopes.scopes)
+            const scope = scopes.scopeByName(assignName)
             scope[assignName].value = valueOf(expression.right)
-            // log('scope after:', scope)
+            log('scope after:', scope)
         }
     }
 
@@ -253,12 +245,10 @@ const interpreter = (ast) => {
 
     const r = interpretExpressionList(ast)
 
-    // 需要进行while_1 parser测试就开启
-    // if (!r) {
-    //     const [fist] = scope
-    //     log('fist.i:', fist['a'].value)
-    //     log(scope)
-    // }
+    // hardcode: 为了处理测试用例while_1，可以去掉，控制台和js script的输出以后再处理
+    if (!r) {
+        // return scopes.head['a'].value
+    }
 
     return r
 }

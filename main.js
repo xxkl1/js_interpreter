@@ -4,10 +4,11 @@ import parser from "./parser.js"
 import interpreter from './interpreter.js'
 
 const __main = () => {
-    const input = `var f = function(a) {
+    const input = `
+    var f = function(a) {
         return a
     }
-    f()
+    f(1)
     `
     const t = tokenizer(input)
     log('tokenizer:', t)
